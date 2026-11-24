@@ -250,7 +250,7 @@ impl zed::Extension for UrdfVisualizerExtension {
             }
         }
         Ok(Some(json!({
-            "auto_open_viewer": true,
+            "auto_open_viewer": false,
             "always_on_top": true
         })))
     }

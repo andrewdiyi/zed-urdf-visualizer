@@ -369,6 +369,9 @@ function renderJointsPanel(joints: JointMeta[]) {
     const controls = document.createElement('div');
     controls.className = 'joint-controls';
 
+    const sliderWrap = document.createElement('div');
+    sliderWrap.className = 'joint-slider-wrap';
+
     const sliderId = `joint-slider-${j.name}`;
     const slider = document.createElement('input');
     slider.type = 'range';
@@ -380,6 +383,12 @@ function renderJointsPanel(joints: JointMeta[]) {
     slider.value = String(j.value);
     syncSliderVars(slider);
 
+    const formatLimit = (radOrM: number) => {
+      if (!isAngular) return `${radOrM.toFixed(3)} m`;
+      if (useDegrees) return `${((radOrM * 180) / Math.PI).toFixed(1)}°`;
+      return `${radOrM.toFixed(2)} rad`;
+    };
+
     const num = document.createElement('input');
     num.type = 'number';
     num.className = 'joint-num-input';
@@ -387,6 +396,47 @@ function renderJointsPanel(joints: JointMeta[]) {
     num.step = isAngular && useDegrees ? '1' : '0.01';
     const disp = isAngular && useDegrees ? (j.value * 180) / Math.PI : j.value;
     num.value = disp.toFixed(isAngular && useDegrees ? 1 : 3);
+
+    const applyJointVal = (val: number) => {
+      const clamped = Math.max(j.lower, Math.min(j.upper, val));
+      j.value = clamped;
+      slider.value = String(clamped);
+      syncSliderVars(slider);
+      viewport.setJointValue(j.name, clamped);
+      const shown = isAngular && useDegrees ? (clamped * 180) / Math.PI : clamped;
+      num.value = shown.toFixed(isAngular && useDegrees ? 1 : 3);
+    };
+
+    const limitsRow = document.createElement('div');
+    limitsRow.className = 'joint-limits';
+
+    const minBtn = document.createElement('button');
+    minBtn.type = 'button';
+    minBtn.className = 'joint-limit-btn';
+    minBtn.textContent = j.jointType === 'continuous' ? `${formatLimit(j.lower)} (∞)` : formatLimit(j.lower);
+    minBtn.title = '点击跳转到下限';
+    minBtn.addEventListener('click', () => applyJointVal(j.lower));
+
+    const maxBtn = document.createElement('button');
+    maxBtn.type = 'button';
+    maxBtn.className = 'joint-limit-btn';
+    maxBtn.textContent = j.jointType === 'continuous' ? `${formatLimit(j.upper)} (∞)` : formatLimit(j.upper);
+    maxBtn.title = '点击跳转到上限';
+    maxBtn.addEventListener('click', () => applyJointVal(j.upper));
+
+    if (j.lower < -1e-4 && j.upper > 1e-4) {
+      const zeroBtn = document.createElement('button');
+      zeroBtn.type = 'button';
+      zeroBtn.className = 'joint-limit-btn';
+      zeroBtn.textContent = '0';
+      zeroBtn.title = '点击归零';
+      zeroBtn.addEventListener('click', () => applyJointVal(0));
+      limitsRow.append(minBtn, zeroBtn, maxBtn);
+    } else {
+      limitsRow.append(minBtn, maxBtn);
+    }
+
+    sliderWrap.append(slider, limitsRow);
 
     slider.addEventListener('input', () => {
       syncSliderVars(slider);
@@ -401,14 +451,10 @@ function renderJointsPanel(joints: JointMeta[]) {
       const parsed = parseFloat(num.value);
       if (!Number.isFinite(parsed)) return;
       const radOrM = isAngular && useDegrees ? (parsed * Math.PI) / 180 : parsed;
-      const clamped = Math.max(j.lower, Math.min(j.upper, radOrM));
-      j.value = clamped;
-      slider.value = String(clamped);
-      syncSliderVars(slider);
-      viewport.setJointValue(j.name, clamped);
+      applyJointVal(radOrM);
     });
 
-    controls.append(slider, num);
+    controls.append(sliderWrap, num);
     card.append(header, controls);
     jointsListEl.appendChild(card);
     jointDomMap.set(j.name, { slider, num, isAngular });

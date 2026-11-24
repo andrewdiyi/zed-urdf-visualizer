@@ -113,6 +113,9 @@ impl LanguageServer for UrdfLanguageServer {
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
+                code_lens_provider: Some(CodeLensOptions {
+                    resolve_provider: Some(false),
+                }),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec![
@@ -230,6 +233,58 @@ impl LanguageServer for UrdfLanguageServer {
         Ok(Some(DocumentSymbolResponse::Nested(
             doc.analysis.symbols.clone(),
         )))
+    }
+
+    async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
+        let uri_str = params.text_document.uri.to_string();
+        let range = params
+            .text_document
+            .uri
+            .to_file_path()
+            .ok()
+            .and_then(|p| {
+                self.state
+                    .docs
+                    .try_read()
+                    .ok()
+                    .and_then(|docs| docs.get(&p).and_then(|d| d.analysis.robot_tag_range))
+            })
+            .unwrap_or_else(|| Range::new(Position::new(0, 0), Position::new(0, 1)));
+
+        let mut lenses = Vec::new();
+        if is_ssh_session() {
+            let port = *self.state.http_port.read().await;
+            lenses.push(CodeLens {
+                range,
+                command: Some(Command {
+                    title: format!("◎ 远端 3D 预览 (SSH 转发端口 {port})"),
+                    command: "urdf.showSshForwardInfo".into(),
+                    arguments: Some(vec![serde_json::Value::String(uri_str)]),
+                }),
+                data: None,
+            });
+        } else {
+            lenses.push(CodeLens {
+                range,
+                command: Some(Command {
+                    title: "◎ 打开 3D 预览".into(),
+                    command: "urdf.openNativeViewer".into(),
+                    arguments: Some(vec![serde_json::Value::String(uri_str.clone())]),
+                }),
+                data: None,
+            });
+            lenses.push(CodeLens {
+                range,
+                command: Some(Command {
+                    title: "↗ 浏览器 3D 预览".into(),
+                    command: "urdf.openBrowserViewer".into(),
+                    arguments: Some(vec![serde_json::Value::String(uri_str)]),
+                }),
+                data: None,
+            });
+        }
+
+        Ok(Some(lenses))
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {

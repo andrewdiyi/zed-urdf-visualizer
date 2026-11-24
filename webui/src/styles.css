@@ -694,8 +694,42 @@ input[type="range"]:focus-visible {
 .joint-controls {
   display: grid;
   grid-template-columns: 1fr 68px;
-  align-items: center;
+  align-items: start;
   gap: 8px;
+}
+
+.joint-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.joint-limits {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.joint-limit-btn {
+  border: 0;
+  padding: 0 2px;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .joint-limit-btn:hover {
+    color: var(--brand-color);
+    background: var(--bg-elevated);
+  }
 }
 
 .joint-num-input,

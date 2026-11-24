@@ -47,7 +47,7 @@ pub struct ExtensionSettings {
 }
 
 fn default_auto_open() -> bool {
-    true
+    false
 }
 
 fn default_pin_on_top() -> bool {
@@ -90,7 +90,7 @@ impl SharedState {
             http_port: RwLock::new(0),
             workspace_root: RwLock::new(None),
             settings: RwLock::new(ExtensionSettings {
-                auto_open_viewer: true,
+                auto_open_viewer: false,
                 always_on_top: true,
                 remote_port: default_remote_port(),
                 remote_allow_lan: false,

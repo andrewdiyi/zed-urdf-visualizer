@@ -35,6 +35,7 @@ pub struct AnalysisReport {
     /// `(line, start_col..end_col) -> target location`
     pub ref_links: Vec<(Range, Location)>,
     pub hovers: Vec<(Range, String)>,
+    pub robot_tag_range: Option<Range>,
 }
 
 pub fn analyze_urdf_or_xacro(
@@ -69,6 +70,11 @@ pub fn analyze_urdf_or_xacro(
     };
 
     let root = doc.root_element();
+    let root_start = byte_offset_to_pos(root.range().start, &line_starts);
+    report.robot_tag_range = Some(Range::new(
+        root_start,
+        Position::new(root_start.line, root_start.character + 6),
+    ));
     if root.tag_name().name() != "robot" {
         let range = byte_range_to_lsp(root.range(), &line_starts);
         report.diagnostics.push(Diagnostic {

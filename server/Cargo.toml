@@ -2,7 +2,7 @@
 
 [package]
 name = "zed-urdf-server"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Companion LSP, Xacro/ROS package server, Remote SSH forwarder, and native floating 3D viewer for Zed URDF Visualizer"
 
