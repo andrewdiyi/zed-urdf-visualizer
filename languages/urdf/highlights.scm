@@ -18,7 +18,7 @@
 ((ETag (Name) @keyword)
   (#any-of? @keyword "robot" "link" "joint" "transmission" "gazebo"))
 ((EmptyElemTag (Name) @keyword)
-  (#any-of? @keyword "parent" "child" "origin" "axis" "limit" "mass" "inertia" "mesh" "box" "cylinder" "sphere"))
+  (#any-of? @keyword "parent" "child" "origin" "axis" "limit" "mass" "inertia" "mesh" "box" "cylinder" "sphere" "capsule"))
 
 (Attribute (Name) @property)
 (Attribute (AttValue) @string)

@@ -227,6 +227,7 @@ export class UrdfViewport {
       }
     }
 
+    this.attachCapsuleGeometries(parsedRobot);
     this.buildOverlays(parsedRobot);
     this.styleRobotMaterials(parsedRobot);
     this.applyVisibility();
@@ -284,6 +285,63 @@ export class UrdfViewport {
       links,
       meshWarnings: [...warnings]
     };
+  }
+
+  /**
+   * urdf-loader does not natively instantiate `<capsule radius="..." length="..."/>`
+   * geometries (widely used in MuJoCo / IsaacLab / Pinocchio / ROS 2 URDFs).
+   * We inspect each URDFVisual / URDFCollider's `urdfNode` and attach a Z-aligned
+   * THREE.CapsuleGeometry mesh with proper material.
+   */
+  private attachCapsuleGeometries(robot: URDFRobot) {
+    robot.traverse((obj: any) => {
+      if (!obj.isURDFCollider && !obj.isURDFVisual) return;
+      const node: Element | undefined = obj.urdfNode;
+      if (!node) return;
+
+      const geoEl = Array.from(node.children).find(
+        c => c.nodeName.toLowerCase() === 'geometry'
+      );
+      const capEl = geoEl
+        ? Array.from(geoEl.children).find(c => c.nodeName.toLowerCase() === 'capsule')
+        : undefined;
+      if (!capEl) return;
+
+      const radius = parseFloat(capEl.getAttribute('radius') || '0');
+      const length = parseFloat(capEl.getAttribute('length') || '0');
+      if (!(radius > 0)) return;
+
+      const geom = new THREE.CapsuleGeometry(radius, Math.max(0, length), 10, 24);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xb8c2d1,
+        roughness: 0.45,
+        metalness: 0.15
+      });
+
+      const matEl = Array.from(node.children).find(
+        c => c.nodeName.toLowerCase() === 'material'
+      );
+      const colorEl = matEl
+        ? Array.from(matEl.children).find(c => c.nodeName.toLowerCase() === 'color')
+        : undefined;
+      const rgbaAttr = colorEl?.getAttribute('rgba');
+      if (rgbaAttr) {
+        const rgba = rgbaAttr.trim().split(/\s+/).map(Number);
+        if (rgba.length >= 3 && rgba.every(Number.isFinite)) {
+          mat.color.setRGB(rgba[0], rgba[1], rgba[2]);
+          if (rgba.length >= 4 && rgba[3] < 1) {
+            mat.transparent = true;
+            mat.opacity = rgba[3];
+            mat.depthWrite = false;
+          }
+        }
+      }
+
+      const mesh = new THREE.Mesh(geom, mat);
+      // URDF capsules align along local Z-axis; THREE.CapsuleGeometry aligns along Y-axis.
+      mesh.rotation.set(Math.PI / 2, 0, 0);
+      obj.add(mesh);
+    });
   }
 
   private styleRobotMaterials(robot: URDFRobot) {
