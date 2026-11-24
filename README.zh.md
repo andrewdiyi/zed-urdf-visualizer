@@ -73,6 +73,7 @@ zed-urdf-server ssh user@your-server.example.com
         "auto_open_viewer": false,
         "prefer_browser": false,
         "always_on_top": true,
+        "language": "zh",
         "remote_port": 19876,
         "remote_allow_lan": false,
         "github_repo": "andrewdiyi/zed-urdf-visualizer",

@@ -78,6 +78,7 @@ This creates the SSH tunnel in the background and opens a native always-on-top 3
         "auto_open_viewer": false,
         "prefer_browser": false,
         "always_on_top": true,
+        "language": "en",
         "remote_port": 19876,
         "remote_allow_lan": false,
         "github_repo": "andrewdiyi/zed-urdf-visualizer",

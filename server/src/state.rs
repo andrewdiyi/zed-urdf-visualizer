@@ -24,6 +24,7 @@ pub struct ModelUpdatePayload {
     pub xacro_args: BTreeMap<String, String>,
     pub packages: BTreeMap<String, String>,
     pub diagnostics: Vec<String>,
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -44,6 +45,12 @@ pub struct ExtensionSettings {
     pub remote_port: u16,
     #[serde(default)]
     pub remote_allow_lan: bool,
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "en".to_string()
 }
 
 fn default_auto_open() -> bool {
@@ -94,6 +101,7 @@ impl SharedState {
                 always_on_top: true,
                 remote_port: default_remote_port(),
                 remote_allow_lan: false,
+                language: default_language(),
                 ..Default::default()
             }),
             registry: RwLock::new(PackageRegistry::new()),
@@ -258,6 +266,7 @@ impl SharedState {
             xacro_args: discovered_args,
             packages: registry_snapshot.merged_map(),
             diagnostics: analysis.warning_messages.clone(),
+            language: settings.language.clone(),
         };
 
         if let Ok(json) = serde_json::to_string(&payload) {

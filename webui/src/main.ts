@@ -1,5 +1,6 @@
 import { UrdfViewport, JointMeta, LinkMeta } from './viewer.ts';
 import { InteractionMode, MeasureResult } from './measurement.ts';
+import { applyStaticI18n, getLang, hasStoredLang, setLang, t, UiLang } from './i18n.ts';
 
 declare global {
   interface Window {
@@ -20,6 +21,7 @@ interface ServerModelPayload {
   xacroArgs: Record<string, string>;
   packages: Record<string, string>;
   diagnostics: string[];
+  language?: string;
 }
 
 const isNativeWindow = new URLSearchParams(window.location.search).get('native') === '1' || Boolean(window.ipc);
@@ -50,6 +52,7 @@ const btnClearMeasure = document.getElementById('btn-clear-measure') as HTMLButt
 const btnFitCamera = document.getElementById('btn-fit-camera') as HTMLButtonElement;
 const btnPinTop = document.getElementById('btn-pin-top') as HTMLButtonElement;
 const btnOpenBrowser = document.getElementById('btn-open-browser') as HTMLButtonElement;
+const btnLang = document.getElementById('btn-lang') as HTMLButtonElement;
 const btnTheme = document.getElementById('btn-theme') as HTMLButtonElement;
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar') as HTMLButtonElement;
 
@@ -80,6 +83,8 @@ let currentJoints: JointMeta[] = [];
 let currentLinks: LinkMeta[] = [];
 let currentDiagnostics: string[] = [];
 let currentFilePath = '';
+let lastMeasureResult: MeasureResult | null = null;
+let lastPayload: ServerModelPayload | null = null;
 let ws: WebSocket | null = null;
 const jointDomMap = new Map<string, { slider: HTMLInputElement; num: HTMLInputElement; isAngular: boolean }>();
 
@@ -99,7 +104,7 @@ const viewport = new UrdfViewport(canvasMount, labelsOverlay, {
     document.title = fileBadge.textContent
       ? `URDF Visualizer — ${name} (${fileBadge.textContent})`
       : `URDF Visualizer — ${name}`;
-    hudStats.textContent = `Links: ${links.length} · Movable Joints: ${joints.length}`;
+    hudStats.textContent = t('hudStats', { links: links.length, joints: joints.length });
     currentJoints = joints;
     currentLinks = links;
     renderJointsPanel(joints);
@@ -120,13 +125,14 @@ const viewport = new UrdfViewport(canvasMount, labelsOverlay, {
   },
   onHoverPoint(pt, linkName) {
     if (!pt) {
-      hudHover.textContent = 'ROS 坐标 (Z-Up): —';
+      hudHover.textContent = t('hudHoverIdle');
       return;
     }
     const suffix = linkName ? ` [${linkName}]` : '';
     hudHover.textContent = `XYZ: (${pt.x.toFixed(3)}, ${pt.y.toFixed(3)}, ${pt.z.toFixed(3)}) m${suffix}`;
   },
   onMeasureUpdate(res) {
+    lastMeasureResult = res;
     measureDetails.open = true;
     renderMeasureResult(res);
   },
@@ -190,16 +196,37 @@ if (isNativeWindow) {
     const next = btnPinTop.getAttribute('aria-pressed') !== 'true';
     btnPinTop.setAttribute('aria-pressed', String(next));
     window.ipc?.postMessage(JSON.stringify({ cmd: 'set_always_on_top', value: next }));
-    statusLive.textContent = next ? '已开启窗口置顶' : '已关闭窗口置顶';
+    statusLive.textContent = next ? t('statusPinOn') : t('statusPinOff');
   });
 
   btnOpenBrowser.addEventListener('click', () => {
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete('native');
     window.ipc?.postMessage(JSON.stringify({ cmd: 'open_browser', url: cleanUrl.toString() }));
-    statusLive.textContent = '已在默认浏览器打开';
+    statusLive.textContent = t('statusBrowser');
   });
 }
+
+function refreshAllTranslations() {
+  applyStaticI18n();
+  btnUnitToggle.textContent = t('unitLabel', { unit: useDegrees ? 'deg' : 'rad' });
+  hudStats.textContent = t('hudStats', { links: currentLinks.length, joints: currentJoints.length });
+  setInteractionMode(viewport.interactionMode);
+  if (currentJoints.length > 0 || currentLinks.length > 0) {
+    renderJointsPanel(currentJoints);
+    renderLinksPanel(currentLinks);
+  }
+  if (lastMeasureResult) renderMeasureResult(lastMeasureResult);
+  if (lastPayload) renderPackagesAndXacro(lastPayload);
+}
+
+btnLang.addEventListener('click', () => {
+  const next: UiLang = getLang() === 'en' ? 'zh' : 'en';
+  setLang(next, true);
+  refreshAllTranslations();
+});
+
+applyStaticI18n();
 
 // Display Toggles
 function bindToggle(btn: HTMLButtonElement, onToggle: (active: boolean) => void) {
@@ -239,16 +266,16 @@ function setInteractionMode(mode: InteractionMode) {
   btnModeAngle.setAttribute('aria-pressed', String(mode === 'angle'));
 
   if (mode === 'drag') {
-    hudMode.textContent = '模式: 拖拽关节';
-    measureHint.textContent = '点击上方「测距」或「测角」后在模型表面取点。';
+    hudMode.textContent = t('modeDrag');
+    measureHint.textContent = t('hintDrag');
   } else if (mode === 'distance') {
-    hudMode.textContent = '模式: 两点测距 (点击模型表面两点)';
+    hudMode.textContent = t('modeDist');
     measureDetails.open = true;
-    measureHint.textContent = '在机器人网格表面依次点击 P1、P2 计算三维距离与轴向分量。';
+    measureHint.textContent = t('hintDist');
   } else {
-    hudMode.textContent = '模式: 三点测角 (依次点击 P1 → 顶点 P2 → P3)';
+    hudMode.textContent = t('modeAngle');
     measureDetails.open = true;
-    measureHint.textContent = '依次点击起点 P1、角顶点 P2、终点 P3 计算三维空间夹角。';
+    measureHint.textContent = t('hintAngle');
   }
 }
 
@@ -258,13 +285,14 @@ btnModeAngle.addEventListener('click', () => setInteractionMode('angle'));
 
 btnClearMeasure.addEventListener('click', () => {
   viewport.clearMeasurements();
+  lastMeasureResult = null;
   measureReadout.replaceChildren();
-  statusLive.textContent = '已清除测量标记';
+  statusLive.textContent = t('statusCleared');
 });
 
 btnFitCamera.addEventListener('click', () => {
   viewport.fitCameraToRobot();
-  statusLive.textContent = '已重置相机视角';
+  statusLive.textContent = t('statusCameraReset');
 });
 
 window.addEventListener('keydown', e => {
@@ -327,7 +355,7 @@ btnRandomJoints.addEventListener('click', () => viewport.randomizeJoints());
 
 bindToggle(btnUnitToggle, deg => {
   useDegrees = deg;
-  btnUnitToggle.textContent = `单位: ${deg ? 'deg' : 'rad'}`;
+  btnUnitToggle.textContent = t('unitLabel', { unit: deg ? 'deg' : 'rad' });
   renderJointsPanel(currentJoints);
 });
 
@@ -340,7 +368,7 @@ function renderJointsPanel(joints: JointMeta[]) {
   if (joints.length === 0) {
     const p = document.createElement('p');
     p.className = 'muted-note';
-    p.textContent = '当前模型无活动关节 (仅 fixed 关节)';
+    p.textContent = t('noMovableJoints');
     jointsListEl.appendChild(p);
     return;
   }
@@ -357,7 +385,7 @@ function renderJointsPanel(joints: JointMeta[]) {
     nameBtn.type = 'button';
     nameBtn.className = 'joint-name-btn';
     nameBtn.textContent = j.name;
-    nameBtn.title = '点击在 Zed 编辑器中定位此关节定义';
+    nameBtn.title = t('locateJointTip');
     nameBtn.addEventListener('click', () => jumpToSymbol('joint', j.name));
 
     const badge = document.createElement('span');
@@ -414,14 +442,14 @@ function renderJointsPanel(joints: JointMeta[]) {
     minBtn.type = 'button';
     minBtn.className = 'joint-limit-btn';
     minBtn.textContent = j.jointType === 'continuous' ? `${formatLimit(j.lower)} (∞)` : formatLimit(j.lower);
-    minBtn.title = '点击跳转到下限';
+    minBtn.title = t('snapMinTip');
     minBtn.addEventListener('click', () => applyJointVal(j.lower));
 
     const maxBtn = document.createElement('button');
     maxBtn.type = 'button';
     maxBtn.className = 'joint-limit-btn';
     maxBtn.textContent = j.jointType === 'continuous' ? `${formatLimit(j.upper)} (∞)` : formatLimit(j.upper);
-    maxBtn.title = '点击跳转到上限';
+    maxBtn.title = t('snapMaxTip');
     maxBtn.addEventListener('click', () => applyJointVal(j.upper));
 
     if (j.lower < -1e-4 && j.upper > 1e-4) {
@@ -429,7 +457,7 @@ function renderJointsPanel(joints: JointMeta[]) {
       zeroBtn.type = 'button';
       zeroBtn.className = 'joint-limit-btn';
       zeroBtn.textContent = '0';
-      zeroBtn.title = '点击归零';
+      zeroBtn.title = t('snapZeroTip');
       zeroBtn.addEventListener('click', () => applyJointVal(0));
       limitsRow.append(minBtn, zeroBtn, maxBtn);
     } else {
@@ -489,8 +517,8 @@ function renderLinksPanel(links: LinkMeta[]) {
     const jumpBtn = document.createElement('button');
     jumpBtn.type = 'button';
     jumpBtn.className = 'link-jump-btn';
-    jumpBtn.textContent = '定位';
-    jumpBtn.ariaLabel = `在 Zed 中定位连杆 ${link.name}`;
+    jumpBtn.textContent = t('locate');
+    jumpBtn.ariaLabel = t('locateLinkAria', { name: link.name });
     jumpBtn.addEventListener('click', () => jumpToSymbol('link', link.name));
 
     li.append(label, jumpBtn);
@@ -527,11 +555,11 @@ function renderMeasureResult(res: MeasureResult) {
   });
 
   if (res.mode === 'distance' && res.distance !== undefined && res.delta) {
-    addRow('直线距离 d', `${res.distance.toFixed(4)} m (${(res.distance * 1000).toFixed(2)} mm)`);
+    addRow(t('distLinear'), `${res.distance.toFixed(4)} m (${(res.distance * 1000).toFixed(2)} mm)`);
     addRow('ΔX / ΔY / ΔZ', `${res.delta.x.toFixed(4)} / ${res.delta.y.toFixed(4)} / ${res.delta.z.toFixed(4)} m`);
   }
   if (res.mode === 'angle' && res.angleDeg !== undefined && res.angleRad !== undefined) {
-    addRow('空间夹角 θ', `${res.angleDeg.toFixed(2)}° (${res.angleRad.toFixed(4)} rad)`);
+    addRow(t('angle3d'), `${res.angleDeg.toFixed(2)}° (${res.angleRad.toFixed(4)} rad)`);
   }
 }
 
@@ -541,7 +569,7 @@ function renderPackagesAndXacro(payload: ServerModelPayload) {
   if (entries.length === 0) {
     const li = document.createElement('li');
     li.className = 'muted-note';
-    li.textContent = '未检测到 ROS package.xml 映射 (可在 .zed/settings.json 配置)';
+    li.textContent = t('noPackages');
     packagesListEl.appendChild(li);
   } else {
     for (const [pkg, dir] of entries) {
@@ -597,8 +625,15 @@ function jumpToSymbol(kind: 'link' | 'joint', name: string) {
 }
 
 function handleServerPayload(payload: ServerModelPayload) {
+  lastPayload = payload;
+  if (!hasStoredLang() && (payload.language === 'en' || payload.language === 'zh')) {
+    if (payload.language !== getLang()) {
+      setLang(payload.language, false);
+      refreshAllTranslations();
+    }
+  }
   currentFilePath = payload.filePath;
-  fileBadge.textContent = payload.fileName || '未命名';
+  fileBadge.textContent = payload.fileName || t('unnamed');
   fileBadge.title = payload.filePath || '';
   currentDiagnostics = payload.diagnostics || [];
   renderPackagesAndXacro(payload);
@@ -628,8 +663,8 @@ function connectWebSocket() {
 
   socket.addEventListener('open', () => {
     connDot.classList.add('connected');
-    if (fileBadge.textContent === '等待连接…') {
-      fileBadge.textContent = '已连接 LSP';
+    if (!currentFilePath) {
+      fileBadge.textContent = t('connectedLsp');
     }
   });
 
