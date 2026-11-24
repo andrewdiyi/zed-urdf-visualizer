@@ -1,42 +1,50 @@
 # Zed URDF Visualizer
 
-在 **Zed** 编辑器中实现与 VS Code [`morningfrog.urdf-visualizer`](https://marketplace.visualstudio.com/items?itemName=morningfrog.urdf-visualizer) 对齐的交互式 3D URDF / Xacro 机器人可视化插件，原生支持 **零环境依赖自动下载** 与 **Zed Remote SSH 远端机器人工程实时转发预览**。
+**English** | [简体中文](./README.zh.md)
+
+An interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver, Remote SSH preview forwarder, and URDF Language Server for the [Zed](https://zed.dev) editor — bringing the [`morningfrog.urdf-visualizer`](https://marketplace.visualstudio.com/items?itemName=morningfrog.urdf-visualizer) workflow to Zed.
 
 ---
 
-## 核心特性
+## Features
 
-1. **纯 Zed 插件安装体验（零手动依赖）**
-   - 用户只需安装 Zed 并安装本扩展：首次打开 `.urdf` / `.xacro` 文件时，插件会自动识别当前系统架构（macOS Apple Silicon / Intel、Linux x86_64 / ARM64 静态 `musl`、Windows x64），从 GitHub Releases 自动下载单文件服务到 Zed 专属沙盒目录并运行，无需手动安装 Node、Rust 或 ROS。
-2. **Zed 未保存毫秒级实时热更新**
-   - 通过 `urdf-lsp` 监听 `textDocument/didChange`，修改关节原点、连杆尺寸或 Xacro 参数时**无需保存文件**，3D 视图实时同步刷新，并保持当前关节角度与相机视角。
-3. **原生支持 Zed Remote SSH 转发**
-   - 在通过 Zed SSH 连接远端 Linux 机器人/强化学习服务器（如 ROS 2 Humble、IsaacLab、MJLab 等无桌面服务器）时：
-     - 自动拉取**零动态库依赖的 Linux `musl` 静态二进制**到远端 Zed 沙盒；
-     - 自动检测 `$SSH_CONNECTION` 并固定监听 `127.0.0.1:19876`（避免与本机端口冲突），配合 `~/.ssh/config` 一行 `LocalForward 19876 127.0.0.1:19876` 或一键 `zed-urdf-server ssh` 命令即可在本机悬浮窗/浏览器实时预览远端模型与网格资源。
-4. **完整机器人调试工具箱**
-   - 支持 `.stl`、`.dae` (Collada)、`.obj`、`.glb` / `.gltf` 网格与标准原语几何体。
-   - 一键切换 `Visual`、`Collision`（半透明碰撞包络）、`Inertia`（对称惯性张量特征分解主轴包络 + 质心球）、`TF` 坐标轴与 `Axes` 关节轴箭头。
-   - 支持侧边栏滑块（`rad` / `deg` 切换、随机姿态、全部归零）及 **3D 视图鼠标直接拖拽关节**。
-   - 内置 **两点三维测距**（含 $\Delta X, \Delta Y, \Delta Z$）与 **三点空间夹角测量**。
-   - 内置纯 Rust Xacro 展开器（无 ROS 环境亦可展开 `xacro:macro`、`xacro:property`、`xacro:arg`、`${...}` 数学表达式与 `$(find pkg)`）+ 自动扫描 `package.xml` 解析 `package://`。
-
----
-
-## 使用方式
-
-### 一、普通用户安装（发布后仅需 Zed）
-1. 将本仓库推送到 GitHub（默认仓库地址为 `andrewdiyi/zed-urdf-visualizer`，打上 `v0.1.0` Tag 后 [release.yml](.github/workflows/release.yml) 会自动构建并发布五端二进制包）。
-2. 在任意电脑打开 Zed → 安装本插件 → 直接打开 `.urdf` 或 `.xacro` 文件，Zed 底部状态栏会自动下载对应平台服务并弹出 3D 预览窗！
+1. **Zero-Setup Zed Extension Experience**
+   - Install the extension directly in Zed — no manual Rust, Node.js, or ROS installation required.
+   - On first use, the extension automatically detects your platform (macOS Apple Silicon / Intel, Linux `x86_64` / `aarch64` static `musl`, Windows `x64`), downloads the self-contained `zed-urdf-server` binary from GitHub Releases into Zed's private extension sandbox, and manages it automatically.
+2. **Unsaved Live Hot-Reload**
+   - Powered by a custom `urdf-lsp` Language Server listening to `textDocument/didChange`: edits to link dimensions, joint origins, materials, or Xacro properties update the 3D scene in real time **without saving**, preserving joint poses and camera angle.
+3. **Click-to-Preview Triggers (No Unwanted Auto-Popups)**
+   - Preview does not auto-open by default (`auto_open_viewer: false`).
+   - Click the **`▶`** runnable button in the editor gutter on `<robot ...>`, click the **`◎ 打开 3D 预览`** / **`↗ 浏览器 3D 预览`** CodeLens (with `"code_lens": "on"`), or press `Cmd+.` (`Ctrl+.`) anywhere in a `.urdf` / `.xacro` file.
+4. **Full Robotics Inspection Toolkit**
+   - **Mesh Formats**: `.stl`, `.dae` (Collada), `.obj`, `.glb` / `.gltf`, and standard URDF primitives (`box`, `cylinder`, `sphere`).
+   - **Layer Toggles**: `Visual`, `Collision` (translucent amber overlay), `Inertia` (3×3 symmetric inertia tensor eigendecomposition principal-axis box + center-of-mass marker), `TF` frames, and `Axes` (joint motion arrows).
+   - **Interactive Joint Controls**: Sidebar sliders with **explicit lower / `0` / upper limit labels** (click any limit label to snap directly, toggle `rad` / `deg`, randomize pose, or zero all joints) plus **direct 3D pointer dragging** on robot links.
+   - **Link Tree & Source Navigation**: Search/filter links, toggle individual link visibility, and jump straight to `<link>` / `<joint>` definitions in Zed.
+   - **3D Measurement Tools**: Two-point 3D distance measurement (with $\Delta X, \Delta Y, \Delta Z$) and three-point 3D angle measurement (degrees & radians), plus live Z-Up ROS coordinates on hover.
+   - **Built-in Pure-Rust Xacro Engine & `package://` Resolver**: Uses system `xacro` when available and automatically falls back to a built-in pure-Rust Xacro expander (`xacro:macro`, `xacro:property`, `xacro:arg` live overrides, `xacro:include`, `xacro:if`/`unless`, `${...}` math expressions, `$(find pkg)`). Automatically scans `package.xml`, `AMENT_PREFIX_PATH`, and `ROS_PACKAGE_PATH`.
+5. **Native Zed Remote SSH Forwarding**
+   - When opening `.urdf` / `.xacro` files over **Zed Remote SSH** on headless Linux robotics/RL servers:
+     - Runs a zero-dependency static `musl` binary on the remote host (no GTK/WebKit required);
+     - Automatically detects SSH sessions and binds deterministic port `19876` on `127.0.0.1` so SSH `LocalForward` works without colliding with local Zed instances.
 
 ---
 
-### 二、Zed Remote SSH 远端机器人工程预览
+## Opening the 3D Preview
 
-当你在 Mac 上用 Zed Remote SSH 连接远端 Linux 主机打开 `.urdf` / `.xacro` 时，远端 `urdf-lsp` 会自动解析远端的 ROS 包与网格并监听固定端口 **`19876`**。任选以下一种方式即可在 Mac 本机查看 3D 画面：
+- **Editor Gutter Play Button**: Click **`▶`** next to `<robot ...>` and select `◎ URDF: 打开原生 3D 悬浮窗预览` or `↗ URDF: 在浏览器中打开 3D 预览`.
+- **Inline CodeLens**: Enable `"code_lens": "on"` in Zed `settings.json` to click `◎ 打开 3D 预览` directly above `<robot ...>`.
+- **Code Actions (`Cmd+.` / `Ctrl+.`)**: Trigger native floating window, browser preview, or ROS package rescan from anywhere in the file.
+- **Zed Tasks (`Cmd+Shift+P` → `task: spawn`)**: Run `◎ URDF: 打开原生 3D 悬浮窗预览` (works with zero `$PATH` setup).
 
-#### 方式 A（最推荐，一劳永逸）：在客户端 `~/.ssh/config` 加一行转发
-在你的远端主机配置块中加入 `LocalForward`：
+---
+
+## Remote SSH Workflow
+
+When editing robot models on a remote Linux server via Zed Remote SSH, `urdf-lsp` listens on `127.0.0.1:19876` on the remote host.
+
+### Option A (Recommended): Add `LocalForward` to `~/.ssh/config`
+
 ```sshconfig
 Host my-robot-server
     HostName your-server.example.com
@@ -44,33 +52,30 @@ Host my-robot-server
     User ubuntu
     LocalForward 19876 127.0.0.1:19876
 ```
-这样 **Zed 自身的 SSH 连接就会自动帮你打通 `19876` 隧道**，无需额外开终端！直接在本机浏览器打开 `http://127.0.0.1:19876`（或本机运行 `zed-urdf-server window --url http://127.0.0.1:19876/?native=1 --pin` 打开置顶悬浮窗）即可实时联动。
 
-#### 方式 B：一键建立 SSH 隧道并弹出原生置顶悬浮窗
-在本机终端执行一条命令即可自动拉起后台隧道并弹出原生置顶 3D 窗口（关闭窗口自动断开隧道）：
+Zed's SSH connection automatically forwards port `19876`. Open `http://127.0.0.1:19876` in your local browser (or launch a pinned native floating window locally with `zed-urdf-server window --url "http://127.0.0.1:19876/?native=1" --pin`).
+
+### Option B: One-Command Tunnel + Native Floating Window
+
 ```bash
 zed-urdf-server ssh user@your-server.example.com
 ```
 
-> **若远端服务器无法直连 GitHub 下载 Release**：
-> - 可在远端 `.zed/settings.json` 配置代理前缀 `"github_proxy": "https://ghfast.top"`，或者将编译好的 Linux 静态二进制放到远端 `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.0/zed-urdf-server`（或 `~/.local/bin/zed-urdf-server`），插件会优先离线秒加载本地缓存，绝不卡网络请求。
+This creates the SSH tunnel in the background and opens a native always-on-top 3D preview window locally, automatically closing the tunnel when the window exits.
+
+> **Restricted network / offline servers**: Configure `"github_proxy": "https://your-mirror"` in `.zed/settings.json`, or place the Linux `musl` binary once in `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.1/zed-urdf-server` — cached binaries load offline without contacting GitHub.
 
 ---
 
-### 三、如何随时手动唤起预览
-- **快捷键菜单 (`Cmd + .`)**：在编辑器内按 `Cmd + .` 选择 `URDF Visualizer: 打开原生 3D 悬浮窗预览` / `在浏览器中打开 3D 预览`（SSH 下可查看当前远端转发地址与命令）。
-- **Zed Tasks (`Cmd + Shift + P` → `task: spawn`)**：选择 `URDF: 打开原生 3D 悬浮窗预览`（内部通过本地 HTTP 接口触发，无需配置任何全局 `$PATH`）。
-
----
-
-### 四、配置项参考（`.zed/settings.json`）
+## Configuration (`.zed/settings.json`)
 
 ```json
 {
+  "code_lens": "on",
   "lsp": {
     "urdf-lsp": {
       "settings": {
-        "auto_open_viewer": true,
+        "auto_open_viewer": false,
         "prefer_browser": false,
         "always_on_top": true,
         "remote_port": 19876,
@@ -88,3 +93,9 @@ zed-urdf-server ssh user@your-server.example.com
   }
 }
 ```
+
+---
+
+## License
+
+[MIT](./LICENSE)
