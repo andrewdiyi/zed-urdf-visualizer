@@ -44,7 +44,9 @@ impl UrdfVisualizerExtension {
                 DownloadedFileType::Zip,
                 "zed-urdf-server.exe",
             )),
-            _ => Err(format!("暂不支持当前平台架构: {os:?} / {arch:?}")),
+            _ => Err(format!(
+                "Unsupported platform architecture: {os:?} / {arch:?}"
+            )),
         }
     }
 
@@ -157,10 +159,12 @@ impl UrdfVisualizerExtension {
                                 language_server_id,
                                 &LanguageServerInstallationStatus::None,
                             );
-                            if let Some(fallback) = Self::find_system_fallback(worktree, &shell_env, bin_name) {
+                            if let Some(fallback) = worktree.which(bin_name) {
                                 return Ok((fallback, vec!["lsp".to_string()], shell_env));
                             }
-                            return Err(format!("下载预编译服务失败 ({download_url}): {dl_err}"));
+                            return Err(format!(
+                                "Failed to download prebuilt zed-urdf-server ({download_url}): {dl_err}"
+                            ));
                         }
 
                         zed::make_file_executable(&binary_path)?;
@@ -192,30 +196,14 @@ impl UrdfVisualizerExtension {
             }
         }
 
-        // 6. Local dev fallback (`$PATH` or `~/.local/bin/zed-urdf-server` before first GitHub Release is published)
-        if let Some(fallback) = Self::find_system_fallback(worktree, &shell_env, bin_name) {
+        // 6. Fallback to binary installed in PATH
+        if let Some(fallback) = worktree.which(bin_name) {
             return Ok((fallback, vec!["lsp".to_string()], shell_env));
         }
 
         Err(format!(
-            "未能自动获取 zed-urdf-server：GitHub 仓库 '{github_repo}' 尚未发布包含 '{asset_name}' 的 Release，且当前机器未找到本地预装版。"
+            "Failed to locate zed-urdf-server: no release asset '{asset_name}' found in '{github_repo}', and '{bin_name}' was not found in PATH."
         ))
-    }
-
-    fn find_system_fallback(
-        worktree: &Worktree,
-        shell_env: &[(String, String)],
-        bin_name: &str,
-    ) -> Option<String> {
-        if let Some(found) = worktree.which(bin_name) {
-            return Some(found);
-        }
-        if let Some((_, home)) = shell_env.iter().find(|(k, _)| k == "HOME") {
-            let candidate = format!("{home}/.local/bin/{bin_name}");
-            // Return candidate path on Unix dev setups where `~/.local/bin` may not be in default PATH
-            return Some(candidate);
-        }
-        None
     }
 }
 
