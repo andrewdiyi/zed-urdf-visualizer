@@ -63,7 +63,7 @@ zed-urdf-server ssh user@your-server.example.com
 
 This creates the SSH tunnel in the background and opens a native always-on-top 3D preview window locally, automatically closing the tunnel when the window exits.
 
-> **Restricted network / offline servers**: Configure `"github_proxy": "https://your-mirror"` in `.zed/settings.json`, or place the Linux `musl` binary once in `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.1/zed-urdf-server` — cached binaries load offline without contacting GitHub.
+> **Restricted network / offline servers**: Configure `"github_proxy": "https://your-mirror"` in `.zed/settings.json`, or place the Linux `musl` binary once in `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2/zed-urdf-server` — cached binaries load offline without contacting GitHub.
 
 ---
 

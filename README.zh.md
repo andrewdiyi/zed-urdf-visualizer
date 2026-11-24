@@ -58,7 +58,7 @@ zed-urdf-server ssh user@your-server.example.com
 会自动在后台拉起隧道并弹出原生置顶 3D 窗口，关闭窗口时自动断开隧道。
 
 > **若远端服务器无法直连 GitHub 下载 Release**：
-> 可在远端 `.zed/settings.json` 配置代理前缀 `"github_proxy": "https://your-mirror"`，或者将 Linux 静态二进制放到远端 `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.1/zed-urdf-server`（或 `~/.local/bin/zed-urdf-server`），插件会优先离线秒加载本地缓存，不卡网络请求。
+> 可在远端 `.zed/settings.json` 配置代理前缀 `"github_proxy": "https://your-mirror"`，或者将 Linux 静态二进制放到远端 `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2/zed-urdf-server`（或 `~/.local/bin/zed-urdf-server`），插件会优先离线秒加载本地缓存，不卡网络请求。
 
 ---
 
