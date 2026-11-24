@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    try {
+      document.querySelector('meta[name="color-scheme"]').content =
+        localStorage.getItem("color-scheme") ?? "light dark";
+    } catch {}
+  </script>
+  <title>Zed URDF Visualizer</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <header class="app-header" id="titlebar">
+    <div class="window-brand" data-drag-region>
+      <span class="conn-dot" id="conn-dot" aria-hidden="true"></span>
+      <h1 class="app-title" id="robot-title" data-drag-region>URDF Visualizer</h1>
+      <code class="file-badge" id="file-badge" data-drag-region>等待连接…</code>
+    </div>
+
+    <div
+      role="toolbar"
+      focusgroup="toolbar wrap"
+      aria-label="三维视图与工具栏"
+      aria-controls="viewport-container"
+      class="main-toolbar"
+      id="main-toolbar"
+    >
+      <div role="group" aria-label="模型图层显示" class="toolbar-group">
+        <button type="button" id="btn-visual" aria-pressed="true" title="显示外观网格 (Visual)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 1.5 14 5v6l-6 3.5L2 11V5l6-3.5Zm0 1.73L3.9 5.62 8 8.01l4.1-2.39L8 3.23ZM3.5 6.89v3.84l4 2.33V9.22l-4-2.33Zm9 0-4 2.33v3.84l4-2.33V6.89Z"/></svg>
+          <span>Visual</span>
+        </button>
+        <button type="button" id="btn-collision" aria-pressed="false" title="显示碰撞体 (Collision)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1.5a5.5 5.5 0 0 1 4.35 8.86L4.64 3.65A5.47 5.47 0 0 1 8 2.5Zm0 11a5.5 5.5 0 0 1-4.35-8.86l7.71 7.71A5.47 5.47 0 0 1 8 13.5Z"/></svg>
+          <span>Collision</span>
+        </button>
+        <button type="button" id="btn-inertia" aria-pressed="false" title="显示惯性主轴包络与质心 (Inertia)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2ZM3.58 7.25C3.92 5.2 5.47 3.77 7.25 3.55v3.7H3.58Zm0 1.5h3.67v3.7c-1.78-.22-3.33-1.65-3.67-3.7Zm5.17 3.7v-3.7h3.67c-.34 2.05-1.89 3.48-3.67 3.7Zm0-5.2v-3.7c1.78.22 3.33 1.65 3.67 3.7H8.75Z"/></svg>
+          <span>Inertia</span>
+        </button>
+        <button type="button" id="btn-tf" aria-pressed="false" title="显示连杆 TF 坐标系 (TF Frames)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M7.25 2v6.19L2.72 12.72l1.06 1.06L8 9.56l4.22 4.22 1.06-1.06-4.53-4.53V2h-1.5Z"/></svg>
+          <span>TF</span>
+        </button>
+        <button type="button" id="btn-axes" aria-pressed="false" title="显示关节运动轴向箭头 (Joint Axes)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 1.5 11.5 5h-2.75v6h2.75L8 14.5 4.5 11h2.75V5H4.5L8 1.5Z"/></svg>
+          <span>Axes</span>
+        </button>
+      </div>
+
+      <span role="separator" aria-orientation="vertical" class="toolbar-sep"></span>
+
+      <div role="group" aria-label="交互与测量模式" class="toolbar-group">
+        <button type="button" id="btn-mode-drag" aria-pressed="true" title="鼠标直接拖拽模型关节">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M6.5 1.5a1.25 1.25 0 0 1 2.5 0v4.25h.75a1.25 1.25 0 0 1 2.45.35h.3a1.25 1.25 0 0 1 1.25 1.25v3.4A4.25 4.25 0 0 1 9.5 15H6.8a4.25 4.25 0 0 1-3.68-2.12L1.68 10.4a1.25 1.25 0 0 1 2.16-1.25l1.41 2.44V1.5h1.25Z"/></svg>
+          <span>拖拽关节</span>
+        </button>
+        <button type="button" id="btn-mode-dist" aria-pressed="false" title="两点距离测量 (点击模型表面两点)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M1.5 10.5 10.5 1.5l4 4-9 9-4-4Zm2.12 0 1.88 1.88 6.88-6.88L10.5 3.62 8.88 5.25l1.06 1.06-1.06 1.06-1.06-1.06-1.5 1.5 1.06 1.06-1.06 1.06-1.06-1.06-1.64 1.63Z"/></svg>
+          <span>测距</span>
+        </button>
+        <button type="button" id="btn-mode-angle" aria-pressed="false" title="三点夹角测量 (依次点击起点、顶点、终点)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2.5 13.5V12h11v1.5h-11Zm0-1.5L9.8 2.4l1.2.9L4.7 11.6A5.5 5.5 0 0 1 8.4 12H6.9a4 4 0 0 0-2.6-1l-1.8 1Z"/></svg>
+          <span>测角</span>
+        </button>
+        <button type="button" id="btn-clear-measure" aria-label="清除测量标记" title="清除测量标记">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5.5 2h5l.5 1H14v1.5H2V3h3l.5-1ZM3.5 5.5h9l-.6 8a1.5 1.5 0 0 1-1.5 1.4H5.6a1.5 1.5 0 0 1-1.5-1.4l-.6-8Z"/></svg>
+        </button>
+      </div>
+
+      <span role="separator" aria-orientation="vertical" class="toolbar-sep"></span>
+
+      <div role="group" aria-label="视角与窗口操作" class="toolbar-group">
+        <button type="button" id="btn-fit-camera" aria-label="重置相机视角" title="自适应重置相机视角 (F)">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2 5V2h3v1.5H3.5V5H2Zm9-3h3v3h-1.5V3.5H11V2ZM3.5 11v1.5H5V14H2v-3h1.5Zm9 1.5V11H14v3h-3v-1.5h1.5ZM8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg>
+        </button>
+        <button type="button" id="btn-pin-top" aria-pressed="false" aria-label="窗口置顶" title="悬浮窗置顶贴靠 Zed" hidden>
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M9.8 1.5 14.5 6.2l-1.06 1.06-.88-.88-2.68 2.68.44 3.06-1.06 1.06-2.83-2.83-3.65 3.65-1.06-1.06 3.65-3.65-2.83-2.83 1.06-1.06 3.06.44 2.68-2.68-.88-.88L9.8 1.5Z"/></svg>
+          <span>置顶</span>
+        </button>
+        <button type="button" id="btn-open-browser" aria-label="在浏览器中打开" title="在默认浏览器中打开" hidden>
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M9 2h5v5h-1.5V4.56L7.28 9.78 6.22 8.72 11.44 3.5H9V2ZM3.5 4A1.5 1.5 0 0 0 2 5.5v7A1.5 1.5 0 0 0 3.5 14h7a1.5 1.5 0 0 0 1.5-1.5V9h-1.5v3.5h-7v-7H7V4H3.5Z"/></svg>
+        </button>
+        <button type="button" id="btn-theme" class="theme-toggle-btn" title="切换深浅色外观">
+          <span class="theme-opt-dark">
+            <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 1a7 7 0 1 0 6.78 8.73A5.5 5.5 0 0 1 7.27 2.22 7.05 7.05 0 0 0 8 1Z"/></svg>
+            <span class="sr-only">切换到深色主题</span>
+          </span>
+          <span class="theme-opt-light">
+            <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7ZM8 1h.75v2H7.25V1H8Zm0 12h.75v2H7.25v-2H8ZM1 7.25h2v1.5H1v-1.5Zm12 0h2v1.5h-2v-1.5ZM3.05 2.52l1.42 1.42-1.06 1.06-1.42-1.42 1.06-1.06Zm9.54 9.54 1.42 1.42-1.06 1.06-1.42-1.42 1.06-1.06Zm1.42-8.48-1.42 1.42-1.06-1.06 1.42-1.42 1.06 1.06ZM4.47 12.06l-1.42 1.42-1.06-1.06 1.42-1.42 1.06 1.06Z"/></svg>
+            <span class="sr-only">切换到浅色主题</span>
+          </span>
+        </button>
+        <button type="button" id="btn-toggle-sidebar" aria-pressed="true" aria-label="展开或收起侧边控制栏" title="展开/收起侧边检查器">
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h9A1.5 1.5 0 0 1 14 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5v-11Zm8 0H3.5v11H10v-11Zm1.5 11h1v-11h-1v11Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <p id="toolbar-status" role="status" class="sr-only"></p>
+
+  <div class="workspace-grid" id="workspace-grid">
+    <main id="viewport-container" class="viewport-container">
+      <div id="canvas-mount" class="canvas-mount"></div>
+      <div id="labels-overlay" class="labels-overlay" aria-hidden="true"></div>
+
+      <div id="empty-banner" class="empty-banner">
+        <h2>等待打开 URDF / Xacro 模型</h2>
+        <p>在 Zed 中打开任意 <code>.urdf</code> 或 <code>.xacro</code> 文件即可实时同步预览，也可以直接将文件拖入此窗口。</p>
+      </div>
+
+      <div id="error-toast" class="error-toast" hidden></div>
+
+      <footer class="hud-bar">
+        <span id="hud-stats">Links: 0 · Joints: 0</span>
+        <span id="hud-hover">ROS 坐标 (Z-Up): —</span>
+        <span id="hud-mode">模式: 拖拽关节</span>
+      </footer>
+    </main>
+
+    <aside id="inspector-sidebar" class="inspector-sidebar" aria-label="机器人模型检查器">
+      <section class="accordion" aria-label="模型控制面板">
+        <details open>
+          <summary>关节运动控制 (<span id="joint-count">0</span>)</summary>
+          <div class="panel-body">
+            <div class="panel-actions">
+              <button type="button" id="btn-zero-joints" class="btn-secondary">全部归零</button>
+              <button type="button" id="btn-random-joints" class="btn-secondary">随机姿态</button>
+              <button type="button" id="btn-unit-toggle" class="btn-secondary" aria-pressed="false">单位: rad</button>
+            </div>
+            <div class="tf-scale-row">
+              <label for="tf-size-slider">坐标轴尺寸</label>
+              <input type="range" id="tf-size-slider" min="0.03" max="0.6" step="0.01" value="0.15">
+              <span id="tf-size-val" class="mono-val">0.15m</span>
+            </div>
+            <div id="joints-list" class="joints-list">
+              <p class="muted-note">暂无可动关节</p>
+            </div>
+          </div>
+        </details>
+
+        <details open>
+          <summary>连杆结构与显隐 (<span id="link-count">0</span>)</summary>
+          <div class="panel-body">
+            <search class="filter-box">
+              <label for="link-filter" class="sr-only">筛选连杆名称</label>
+              <input type="search" id="link-filter" placeholder="搜索 Link 名称…">
+            </search>
+            <div class="panel-actions">
+              <button type="button" id="btn-show-all-links" class="btn-secondary">全部显示</button>
+              <button type="button" id="btn-hide-all-links" class="btn-secondary">全部隐藏</button>
+            </div>
+            <ul id="links-list" class="links-list"></ul>
+          </div>
+        </details>
+
+        <details id="measure-details">
+          <summary>测量工具与选点数据</summary>
+          <div class="panel-body">
+            <p class="muted-note" id="measure-hint">点击上方「测距」或「测角」后在模型表面取点。</p>
+            <dl id="measure-readout" class="measure-readout"></dl>
+          </div>
+        </details>
+
+        <details id="diagnostics-details">
+          <summary>ROS 包寻址与 Xacro 状态</summary>
+          <div class="panel-body">
+            <div id="xacro-args-section" hidden>
+              <p class="section-sublabel">Xacro 参数覆盖 (<code>xacro:arg</code>)</p>
+              <div id="xacro-args-list" class="xacro-args-list"></div>
+            </div>
+            <p class="section-sublabel">已解析 <code>package://</code> 映射</p>
+            <ul id="packages-list" class="packages-list">
+              <li class="muted-note">尚未加载包映射</li>
+            </ul>
+            <div id="mesh-warnings-box" hidden>
+              <p class="section-sublabel warn-text">网格/诊断告警</p>
+              <ul id="warnings-list" class="warnings-list"></ul>
+            </div>
+          </div>
+        </details>
+      </section>
+    </aside>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

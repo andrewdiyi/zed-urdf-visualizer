@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>zed_urdf_demo</name>
+  <version>0.1.0</version>
+  <description>Demo ROS package for testing package:// mesh resolution and Xacro macros in Zed URDF Visualizer</description>
+  <maintainer email="maintainer@example.com">maintainer</maintainer>
+  <license>MIT</license>
+</package>

@@ -1,0 +1,8 @@
+name = "Xacro"
+grammar = "xml"
+path_suffixes = ["xacro", "urdf.xacro"]
+block_comment = ["<!-- ", " -->"]
+brackets = [{ start = "<", end = ">", close = true, newline = true }]
+tab_size = 2
+prettier_parser_name = "xml"
+prettier_plugins = ["@prettier/plugin-xml"]

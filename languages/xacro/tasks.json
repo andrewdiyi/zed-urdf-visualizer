@@ -1,0 +1,24 @@
+[
+  {
+    "label": "URDF: 打开原生 3D 悬浮窗预览",
+    "command": "sh",
+    "args": [
+      "-c",
+      "PORT_FILE=\"${TMPDIR:-/tmp}/zed-urdf-visualizer-${USER:-default}.port\"; if [ -f \"$PORT_FILE\" ]; then curl --noproxy '*' -fsS -X POST \"http://127.0.0.1:$(cat \"$PORT_FILE\")/api/open-preview\" -H 'Content-Type: application/json' -d \"{\\\"file_path\\\":\\\"$ZED_FILE\\\",\\\"browser\\\":false}\" >/dev/null; else echo '请先确保当前 Xacro 文件的 urdf-lsp 已启动'; fi"
+    ],
+    "reveal": "never",
+    "hide": "always",
+    "allow_concurrent_runs": true
+  },
+  {
+    "label": "URDF: 在浏览器中打开 3D 预览",
+    "command": "sh",
+    "args": [
+      "-c",
+      "PORT_FILE=\"${TMPDIR:-/tmp}/zed-urdf-visualizer-${USER:-default}.port\"; if [ -f \"$PORT_FILE\" ]; then curl --noproxy '*' -fsS -X POST \"http://127.0.0.1:$(cat \"$PORT_FILE\")/api/open-preview\" -H 'Content-Type: application/json' -d \"{\\\"file_path\\\":\\\"$ZED_FILE\\\",\\\"browser\\\":true}\" >/dev/null; else echo '请先确保当前 Xacro 文件的 urdf-lsp 已启动'; fi"
+    ],
+    "reveal": "never",
+    "hide": "always",
+    "allow_concurrent_runs": true
+  }
+]

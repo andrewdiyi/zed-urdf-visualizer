@@ -1,0 +1,116 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-webui:
+    name: Build Three.js WebUI Assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: webui/package-lock.json
+      - name: Build WebUI into server/dist
+        working-directory: webui
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webui-dist
+          path: server/dist
+
+  build-server:
+    name: Build (${{ matrix.target }})
+    needs: build-webui
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: zed-urdf-server-aarch64-apple-darwin.tar.gz
+            bin: zed-urdf-server
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: zed-urdf-server-x86_64-apple-darwin.tar.gz
+            bin: zed-urdf-server
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            archive: zed-urdf-server-x86_64-unknown-linux-musl.tar.gz
+            bin: zed-urdf-server
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            archive: zed-urdf-server-aarch64-unknown-linux-musl.tar.gz
+            bin: zed-urdf-server
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zed-urdf-server-x86_64-pc-windows-msvc.zip
+            bin: zed-urdf-server.exe
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: webui-dist
+          path: server/dist
+
+      - name: Install musl-tools on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+
+      - name: Build zed-urdf-server
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path server/Cargo.toml
+
+      - name: Package Unix tar.gz
+        if: runner.os != 'Windows'
+        run: |
+          tar -C "server/target/${{ matrix.target }}/release" -czf "${{ matrix.archive }}" "${{ matrix.bin }}"
+
+      - name: Package Windows zip
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "server/target/${{ matrix.target }}/release/${{ matrix.bin }}" -DestinationPath "${{ matrix.archive }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: ${{ matrix.archive }}
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-server
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true

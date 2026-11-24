@@ -1,0 +1,7 @@
+/target/
+/server/target/
+/server/dist/
+/webui/node_modules/
+/grammars/
+extension.wasm
+*.DS_Store
