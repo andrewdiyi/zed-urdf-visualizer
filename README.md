@@ -15,7 +15,7 @@ An interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver
    - Powered by a custom `urdf-lsp` Language Server listening to `textDocument/didChange`: edits to link dimensions, joint origins, materials, or Xacro properties update the 3D scene in real time **without saving**, preserving joint poses and camera angle.
 3. **Click-to-Preview Triggers (No Unwanted Auto-Popups)**
    - Preview does not auto-open by default (`auto_open_viewer: false`).
-   - Click the **`▶`** runnable button in the editor gutter on `<robot ...>`, click the **`◎ 打开 3D 预览`** / **`↗ 浏览器 3D 预览`** CodeLens (with `"code_lens": "on"`), or press `Cmd+.` (`Ctrl+.`) anywhere in a `.urdf` / `.xacro` file.
+   - Click the **`▶`** runnable button in the editor gutter on `<robot ...>`, click the **`◎ Open 3D Preview`** / **`↗ Open in Browser`** CodeLens (with `"code_lens": "on"`), or press `Cmd+.` (`Ctrl+.`) anywhere in a `.urdf` / `.xacro` file.
 4. **Full Robotics Inspection Toolkit**
    - **Mesh Formats**: `.stl`, `.dae` (Collada), `.obj`, `.glb` / `.gltf`, and standard URDF primitives (`box`, `cylinder`, `sphere`).
    - **Layer Toggles**: `Visual`, `Collision` (translucent amber overlay), `Inertia` (3×3 symmetric inertia tensor eigendecomposition principal-axis box + center-of-mass marker), `TF` frames, and `Axes` (joint motion arrows).
@@ -32,10 +32,10 @@ An interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver
 
 ## Opening the 3D Preview
 
-- **Editor Gutter Play Button**: Click **`▶`** next to `<robot ...>` and select `◎ URDF: 打开原生 3D 悬浮窗预览` or `↗ URDF: 在浏览器中打开 3D 预览`.
-- **Inline CodeLens**: Enable `"code_lens": "on"` in Zed `settings.json` to click `◎ 打开 3D 预览` directly above `<robot ...>`.
+- **Editor Gutter Play Button**: Click **`▶`** next to `<robot ...>` and select `◎ URDF: Open 3D Preview` or `↗ URDF: Open 3D Preview in Browser`.
+- **Inline CodeLens**: Enable `"code_lens": "on"` in Zed `settings.json` to click `◎ Open 3D Preview` directly above `<robot ...>`.
 - **Code Actions (`Cmd+.` / `Ctrl+.`)**: Trigger native floating window, browser preview, or ROS package rescan from anywhere in the file.
-- **Zed Tasks (`Cmd+Shift+P` → `task: spawn`)**: Run `◎ URDF: 打开原生 3D 悬浮窗预览` (works with zero `$PATH` setup).
+- **Zed Tasks (`Cmd+Shift+P` → `task: spawn`)**: Run `◎ URDF: Open 3D Preview` (works with zero `$PATH` setup).
 
 ---
 

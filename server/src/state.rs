@@ -112,7 +112,7 @@ impl SharedState {
         }
         let port = *self.http_port.read().await;
         Some(format!(
-            "URDF 远端预览已就绪 → http://127.0.0.1:{port} （在 ~/.ssh/config 配置 LocalForward {port} 127.0.0.1:{port} 或使用 zed-urdf-server ssh <host> 连接）"
+            "Remote URDF preview ready at http://127.0.0.1:{port} (configure `LocalForward {port} 127.0.0.1:{port}` in ~/.ssh/config or run `zed-urdf-server ssh <host>`)"
         ))
     }
 

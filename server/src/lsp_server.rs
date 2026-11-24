@@ -257,7 +257,7 @@ impl LanguageServer for UrdfLanguageServer {
             lenses.push(CodeLens {
                 range,
                 command: Some(Command {
-                    title: format!("◎ 远端 3D 预览 (SSH 转发端口 {port})"),
+                    title: format!("◎ Remote 3D Preview (SSH Port {port})"),
                     command: "urdf.showSshForwardInfo".into(),
                     arguments: Some(vec![serde_json::Value::String(uri_str)]),
                 }),
@@ -267,7 +267,7 @@ impl LanguageServer for UrdfLanguageServer {
             lenses.push(CodeLens {
                 range,
                 command: Some(Command {
-                    title: "◎ 打开 3D 预览".into(),
+                    title: "◎ Open 3D Preview".into(),
                     command: "urdf.openNativeViewer".into(),
                     arguments: Some(vec![serde_json::Value::String(uri_str.clone())]),
                 }),
@@ -276,7 +276,7 @@ impl LanguageServer for UrdfLanguageServer {
             lenses.push(CodeLens {
                 range,
                 command: Some(Command {
-                    title: "↗ 浏览器 3D 预览".into(),
+                    title: "↗ Open in Browser".into(),
                     command: "urdf.openBrowserViewer".into(),
                     arguments: Some(vec![serde_json::Value::String(uri_str)]),
                 }),
@@ -294,10 +294,10 @@ impl LanguageServer for UrdfLanguageServer {
         if is_ssh_session() {
             let port = *self.state.http_port.read().await;
             actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: format!("URDF Visualizer: 查看远端 SSH 转发预览地址 (端口 {port})"),
+                title: format!("URDF Visualizer: Show Remote SSH Preview URL (Port {port})"),
                 kind: Some(CodeActionKind::EMPTY),
                 command: Some(Command {
-                    title: "查看远端 SSH 转发预览地址".into(),
+                    title: "Show Remote SSH Preview URL".into(),
                     command: "urdf.showSshForwardInfo".into(),
                     arguments: Some(vec![serde_json::Value::String(uri_str)]),
                 }),
@@ -305,20 +305,20 @@ impl LanguageServer for UrdfLanguageServer {
             }));
         } else {
             actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: "URDF Visualizer: 打开原生 3D 悬浮窗预览".into(),
+                title: "URDF Visualizer: Open 3D Preview".into(),
                 kind: Some(CodeActionKind::EMPTY),
                 command: Some(Command {
-                    title: "打开原生 3D 悬浮窗预览".into(),
+                    title: "Open 3D Preview".into(),
                     command: "urdf.openNativeViewer".into(),
                     arguments: Some(vec![serde_json::Value::String(uri_str.clone())]),
                 }),
                 ..Default::default()
             }));
             actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: "URDF Visualizer: 在浏览器中打开 3D 预览".into(),
+                title: "URDF Visualizer: Open 3D Preview in Browser".into(),
                 kind: Some(CodeActionKind::EMPTY),
                 command: Some(Command {
-                    title: "在浏览器中打开 3D 预览".into(),
+                    title: "Open 3D Preview in Browser".into(),
                     command: "urdf.openBrowserViewer".into(),
                     arguments: Some(vec![serde_json::Value::String(uri_str)]),
                 }),
@@ -327,10 +327,10 @@ impl LanguageServer for UrdfLanguageServer {
         }
 
         actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-            title: "URDF Visualizer: 重新扫描工作区 ROS Package".into(),
+            title: "URDF Visualizer: Rescan ROS Packages".into(),
             kind: Some(CodeActionKind::EMPTY),
             command: Some(Command {
-                title: "重新扫描 ROS Package".into(),
+                title: "Rescan ROS Packages".into(),
                 command: "urdf.rescanPackages".into(),
                 arguments: None,
             }),
@@ -366,14 +366,14 @@ impl LanguageServer for UrdfLanguageServer {
             "urdf.openNativeViewer" => {
                 if let Err(e) = self.state.spawn_native_window().await {
                     self.client
-                        .show_message(MessageType::ERROR, format!("打开悬浮预览窗失败: {e}"))
+                        .show_message(MessageType::ERROR, format!("Failed to open 3D preview window: {e}"))
                         .await;
                 }
             }
             "urdf.openBrowserViewer" => {
                 if let Err(e) = self.state.open_in_browser().await {
                     self.client
-                        .show_message(MessageType::ERROR, format!("打开浏览器预览失败: {e}"))
+                        .show_message(MessageType::ERROR, format!("Failed to open browser preview: {e}"))
                         .await;
                 }
             }
@@ -391,7 +391,7 @@ impl LanguageServer for UrdfLanguageServer {
                 self.client
                     .show_message(
                         MessageType::INFO,
-                        format!("已扫描并索引 {count} 个 ROS Package"),
+                        format!("Indexed {count} ROS package(s)"),
                     )
                     .await;
             }
