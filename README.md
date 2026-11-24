@@ -1,47 +1,63 @@
-# Zed URDF Visualizer
+# URDF Visualizer for Zed
 
 **English** | [简体中文](./README.zh.md)
 
-An interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver, Remote SSH preview forwarder, and URDF Language Server for the [Zed](https://zed.dev) editor — inspired by [`MorningFrog/urdf-visualizer`](https://github.com/MorningFrog/urdf-visualizer).
+Interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver, Remote SSH preview forwarder, and URDF Language Server for [Zed](https://zed.dev) — inspired by [`MorningFrog/urdf-visualizer`](https://github.com/MorningFrog/urdf-visualizer).
+
+Because Zed extensions run in a headless WASI sandbox without custom WebView/GUI panel APIs, this extension pairs a lightweight Zed WASM extension with an auto-downloaded companion binary (`zed-urdf-server`) that provides both the URDF Language Server and a native floating 3D preview window (or browser view).
 
 ---
 
 ## Features
 
-1. **Zero-Setup Zed Extension Experience**
-   - Install the extension directly in Zed — no manual Rust, Node.js, or ROS installation required.
-   - On first use, the extension automatically detects your platform (macOS Apple Silicon / Intel, Linux `x86_64` / `aarch64` static `musl`, Windows `x64`), downloads the self-contained `zed-urdf-server` binary from GitHub Releases into Zed's private extension sandbox, and manages it automatically.
-2. **Unsaved Live Hot-Reload**
-   - Powered by a custom `urdf-lsp` Language Server listening to `textDocument/didChange`: edits to link dimensions, joint origins, materials, or Xacro properties update the 3D scene in real time **without saving**, preserving joint poses and camera angle.
-3. **Click-to-Preview Triggers (No Unwanted Auto-Popups)**
-   - Preview does not auto-open by default (`auto_open_viewer: false`).
-   - Click the **`▶`** runnable button in the editor gutter on `<robot ...>`, click the **`◎ Open 3D Preview`** / **`↗ Open in Browser`** CodeLens (with `"code_lens": "on"`), or press `Cmd+.` (`Ctrl+.`) anywhere in a `.urdf` / `.xacro` file.
-4. **Full Robotics Inspection Toolkit**
-   - **Mesh Formats**: `.stl`, `.dae` (Collada), `.obj`, `.glb` / `.gltf`, and standard URDF primitives (`box`, `cylinder`, `sphere`).
-   - **Layer Toggles**: `Visual`, `Collision` (translucent amber overlay), `Inertia` (3×3 symmetric inertia tensor eigendecomposition principal-axis box + center-of-mass marker), `TF` frames, and `Axes` (joint motion arrows).
-   - **Interactive Joint Controls**: Sidebar sliders with **explicit lower / `0` / upper limit labels** (click any limit label to snap directly, toggle `rad` / `deg`, randomize pose, or zero all joints) plus **direct 3D pointer dragging** on robot links.
-   - **Link Tree & Source Navigation**: Search/filter links, toggle individual link visibility, and jump straight to `<link>` / `<joint>` definitions in Zed.
-   - **3D Measurement Tools**: Two-point 3D distance measurement (with $\Delta X, \Delta Y, \Delta Z$) and three-point 3D angle measurement (degrees & radians), plus live Z-Up ROS coordinates on hover.
-   - **Built-in Pure-Rust Xacro Engine & `package://` Resolver**: Uses system `xacro` when available and automatically falls back to a built-in pure-Rust Xacro expander (`xacro:macro`, `xacro:property`, `xacro:arg` live overrides, `xacro:include`, `xacro:if`/`unless`, `${...}` math expressions, `$(find pkg)`). Automatically scans `package.xml`, `AMENT_PREFIX_PATH`, and `ROS_PACKAGE_PATH`.
-5. **Native Zed Remote SSH Forwarding**
-   - When opening `.urdf` / `.xacro` files over **Zed Remote SSH** on headless Linux robotics/RL servers:
-     - Runs a zero-dependency static `musl` binary on the remote host (no GTK/WebKit required);
-     - Automatically detects SSH sessions and binds deterministic port `19876` on `127.0.0.1` so SSH `LocalForward` works without colliding with local Zed instances.
+- **Language & Editor Support**
+  - Recognizes `.urdf`, `.xacro`, and `.urdf.xacro` files using the `tree-sitter-xml` grammar with URDF/Xacro semantic highlighting
+  - Real-time LSP diagnostics (XML syntax errors, duplicate links, unresolved `parent`/`child` links, invalid joint limits, missing mesh assets)
+  - Go-to-Definition between `<parent>` / `<child>` and `<link>` declarations, hover summaries (mass, joint limits in `rad` & `deg`, resolved mesh paths), and document outline (`Cmd+Shift+O`)
+- **Interactive 3D Visualization**
+  - **Unsaved Live Hot-Reload**: Listens to LSP `textDocument/didChange` so geometry, origin, material, and Xacro edits update the 3D scene immediately without saving, preserving current joint angles and camera view
+  - **Supported Geometries**: `<box>`, `<cylinder>`, `<sphere>`, `<capsule>`, plus `.stl`, `.dae` (Collada), `.obj`, and `.glb` / `.gltf` meshes
+  - **Layer Toggles**: `Visual`, `Collision` (translucent overlay), `Inertia` (3×3 symmetric inertia tensor eigendecomposition principal-axis box + center-of-mass sphere), `TF` coordinate frames, and `Axes` (joint motion arrows)
+  - **Joint Manipulation**: Sidebar sliders with explicit **lower / `0` / upper limit labels** (click any limit label to snap directly, toggle `rad` / `deg`, zero all, or randomize pose) plus direct **3D pointer dragging** on robot links
+  - **Inspection & Measurement**: Link filter/visibility tree with source jump (`Locate`), two-point 3D distance measurement (with $\Delta X, \Delta Y, \Delta Z$), three-point 3D angle measurement, and live Z-Up ROS hover coordinates
+  - **Bilingual UI**: Instant `English` / `简体中文` switching directly from the viewer toolbar or via Zed settings
+- **Built-in Xacro & ROS `package://` Resolution**
+  - Uses system `xacro` when available, and automatically falls back to a built-in pure-Rust Xacro expander (`xacro:macro`, `xacro:property`, `xacro:arg` live UI overrides, `xacro:include`, `xacro:if`/`unless`, `${...}` math expressions, `$(find pkg)`) — works with zero ROS installation
+  - Automatically indexes `package.xml` in the workspace, `AMENT_PREFIX_PATH`, and `ROS_PACKAGE_PATH`, with manual override support in `.zed/settings.json`
+- **Native Zed Remote SSH Support**
+  - Runs a zero-dependency static `musl` binary on remote Linux servers (no GTK/WebKit needed) and binds deterministic port `19876` on `127.0.0.1` for effortless SSH `LocalForward` previewing
+
+---
+
+## Installation
+
+For normal users (no Rust, Node.js, Python, or ROS installation required):
+
+1. Install **URDF Visualizer** in Zed
+2. Open any `.urdf` or `.xacro` file
+3. On first launch, the extension checks its private Zed work directory for a cached `zed-urdf-server` binary; if not found, it automatically downloads the matching platform archive from GitHub Releases, extracts it, and starts `urdf-lsp`
 
 ---
 
 ## Opening the 3D Preview
 
-- **Editor Gutter Play Button**: Click **`▶`** next to `<robot ...>` and select `◎ URDF: Open 3D Preview` or `↗ URDF: Open 3D Preview in Browser`.
-- **Inline CodeLens**: Enable `"code_lens": "on"` in Zed `settings.json` to click `◎ Open 3D Preview` directly above `<robot ...>`.
-- **Code Actions (`Cmd+.` / `Ctrl+.`)**: Trigger native floating window, browser preview, or ROS package rescan from anywhere in the file.
-- **Zed Tasks (`Cmd+Shift+P` → `task: spawn`)**: Run `◎ URDF: Open 3D Preview` (works with zero `$PATH` setup).
+Preview does **not** auto-open when opening a file (`auto_open_viewer: false` by default). Trigger it anytime via:
+
+- **Gutter Play Button (`▶`)**: Click `▶` next to `<robot ...>` and select `◎ URDF: Open 3D Preview` or `↗ URDF: Open 3D Preview in Browser` *(macOS / Linux; Windows users without `sh` can use CodeLens or `Ctrl+.` below)*
+- **Inline CodeLens**: Set `"code_lens": "on"` in Zed `settings.json` to display clickable `◎ Open 3D Preview` / `↗ Open in Browser` buttons directly above `<robot ...>`
+- **Code Actions (`Cmd+.` / `Ctrl+.`)**: Run `URDF Visualizer: Open 3D Preview`, `Open 3D Preview in Browser`, or `Rescan ROS Packages` from anywhere in the file
+- **Zed Tasks (`Cmd+Shift+P` → `task: spawn`)**: Run `◎ URDF: Open 3D Preview`
+- **Standalone CLI**:
+  ```sh
+  zed-urdf-server serve path/to/robot.urdf
+  zed-urdf-server serve path/to/robot.xacro --browser --pkg my_pkg=/path/to/my_pkg
+  ```
 
 ---
 
 ## Remote SSH Workflow
 
-When editing robot models on a remote Linux server via Zed Remote SSH, `urdf-lsp` listens on `127.0.0.1:19876` on the remote host.
+When editing robot models on a remote Linux host via Zed Remote SSH, `urdf-lsp` automatically detects the SSH session and binds `127.0.0.1:19876`.
 
 ### Option A (Recommended): Add `LocalForward` to `~/.ssh/config`
 
@@ -53,17 +69,21 @@ Host my-robot-server
     LocalForward 19876 127.0.0.1:19876
 ```
 
-Zed's SSH connection automatically forwards port `19876`. Open `http://127.0.0.1:19876` in your local browser (or launch a pinned native floating window locally with `zed-urdf-server window --url "http://127.0.0.1:19876/?native=1" --pin`).
+Zed's SSH connection automatically forwards port `19876`. Open `http://127.0.0.1:19876` in your browser, or launch a pinned native floating window locally:
+
+```sh
+zed-urdf-server window --url "http://127.0.0.1:19876/?native=1" --pin
+```
 
 ### Option B: One-Command Tunnel + Native Floating Window
 
-```bash
+```sh
 zed-urdf-server ssh user@your-server.example.com
 ```
 
-This creates the SSH tunnel in the background and opens a native always-on-top 3D preview window locally, automatically closing the tunnel when the window exits.
+This starts the SSH tunnel in the background, opens the native floating 3D window locally, and tears down the tunnel automatically when the window closes.
 
-> **Restricted network / offline servers**: Configure `"github_proxy": "https://your-mirror"` in `.zed/settings.json`, or place the Linux `musl` binary once in `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2/zed-urdf-server` — cached binaries load offline without contacting GitHub.
+> **Restricted network / offline servers**: Configure `"github_proxy": "https://your-mirror"` in `.zed/settings.json`, or place the Linux `musl` binary once at `~/.local/share/zed/remote_extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2/zed-urdf-server` — cached binaries load offline without contacting GitHub.
 
 ---
 
@@ -97,6 +117,123 @@ This creates the SSH tunnel in the background and opens a native always-on-top 3
 
 ---
 
+## Release Assets
+
+GitHub Actions (`.github/workflows/release.yml`) builds and publishes five self-contained archives (with the Three.js WebUI embedded via `rust-embed`) for every `v*` tag:
+
+- `zed-urdf-server-aarch64-apple-darwin.tar.gz` (macOS Apple Silicon, native `WKWebView` window)
+- `zed-urdf-server-x86_64-apple-darwin.tar.gz` (macOS Intel, native `WKWebView` window)
+- `zed-urdf-server-x86_64-unknown-linux-musl.tar.gz` (Linux x86_64 static `musl`, zero dynamic dependencies)
+- `zed-urdf-server-aarch64-unknown-linux-musl.tar.gz` (Linux ARM64 static `musl`, zero dynamic dependencies)
+- `zed-urdf-server-x86_64-pc-windows-msvc.zip` (Windows x64, native `WebView2` window)
+
+Each archive places the executable (`zed-urdf-server` or `zed-urdf-server.exe`) at the archive root.
+
+---
+
+## Development
+
+### Prerequisites
+
+- Rust installed via [`rustup`](https://rustup.rs/) with the `wasm32-wasip2` target (`rustup target add wasm32-wasip2`)
+- Node.js 20+ (to bundle the Three.js WebUI into `server/dist/`)
+
+### Install as a Dev Extension in Zed
+
+1. Open Zed and open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Run `zed: install dev extension`
+3. Select this repository folder
+
+After modifying the WASM extension or language queries, open `zed: extensions` and click **`Rebuild`**.
+
+### Local Testing Without Publishing a GitHub Release
+
+1. Build the WebUI and companion server:
+   ```sh
+   npm --prefix webui install
+   npm --prefix webui run build
+   cargo build --release --manifest-path server/Cargo.toml
+   ```
+2. Copy the binary into Zed's extension work directory:
+   - **macOS** *(remove any existing file first on Apple Silicon to keep ad-hoc code signing valid)*:
+     ```sh
+     ZED_WORK="$HOME/Library/Application Support/Zed/extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2"
+     mkdir -p "$ZED_WORK"
+     rm -f "$ZED_WORK/zed-urdf-server"
+     cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
+     chmod +x "$ZED_WORK/zed-urdf-server"
+     ```
+   - **Linux**:
+     ```sh
+     ZED_WORK="$HOME/.local/share/zed/extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2"
+     mkdir -p "$ZED_WORK"
+     cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
+     chmod +x "$ZED_WORK/zed-urdf-server"
+     ```
+   - **Windows (PowerShell)**:
+     ```powershell
+     $ZedWork = "$env:LOCALAPPDATA\Zed\extensions\work\urdf-visualizer\zed-urdf-server-v0.1.2"
+     New-Item -ItemType Directory -Force -Path $ZedWork | Out-Null
+     Copy-Item "server\target\release\zed-urdf-server.exe" "$ZedWork\zed-urdf-server.exe"
+     ```
+3. Run **`editor: restart language server`** in Zed to pick up the newly built server.
+
+---
+
+## Troubleshooting
+
+- **Inspect logs**: Run `zed: open log` in Zed (or launch from terminal with `zed --foreground`) to see `urdf-lsp` startup and download logs.
+- **GitHub download timeout / TLS error**: Set `"github_proxy"` in `.zed/settings.json` or manually place the release binary in the extension work directory listed above.
+- **Missing `package://` meshes**: Check the **ROS Packages & Xacro** accordion in the viewer sidebar to see discovered packages, or add explicit mappings under `lsp.urdf-lsp.settings.packages`.
+- **macOS Homebrew Rust dev-build error (`can't find crate for core`)**: Zed's dev extension builder requires `rustup`'s `cargo` / `rustc` (not Homebrew's standalone `rust` formula) to be first on `PATH` with `wasm32-wasip2` installed.
+
+---
+
+## Project Structure
+
+```text
+.
+├── .github/workflows/release.yml   # 5-platform release build & publish workflow
+├── Cargo.toml                      # Zed WASM extension crate (cdylib)
+├── extension.toml                  # Zed extension manifest (grammars & LSP)
+├── src/lib.rs                      # Extension lifecycle & platform binary auto-downloader
+├── languages/
+│   ├── urdf/                       # URDF config, highlights, runnables, tasks
+│   └── xacro/                      # Xacro config, highlights, runnables, tasks
+├── server/                         # Standalone Rust companion binary (zed-urdf-server)
+│   ├── Cargo.toml
+│   └── src/
+│       ├── main.rs                 # CLI modes: lsp, window, serve, open-preview, ssh
+│       ├── lsp_server.rs           # LSP server (diagnostics, hover, goto-def, CodeLens, CodeActions)
+│       ├── http_server.rs          # Embedded WebUI, WebSocket live sync, /pkg & /fs asset serving
+│       ├── native_window.rs        # Native floating WKWebView / WebView2 window (macOS & Windows)
+│       ├── xacro.rs                # External xacro CLI + built-in pure-Rust Xacro expander
+│       ├── packages.rs             # ROS 1 / ROS 2 package.xml & workspace path resolver
+│       ├── analyzer.rs             # URDF/Xacro semantic analyzer & symbol index
+│       └── state.rs                # Shared state, settings & SSH session detection
+├── webui/                          # Vite + TypeScript + Three.js 3D frontend (embedded into server)
+│   └── src/
+│       ├── viewer.ts               # Z-Up Three.js scene, mesh/capsule loaders, 3D joint dragging
+│       ├── inertia.ts              # 3×3 symmetric inertia tensor Jacobi eigensolver & box visualizer
+│       ├── measurement.ts          # 3D distance & angle measurement tools
+│       ├── i18n.ts                 # English / Simplified Chinese localization
+│       └── main.ts                 # WebSocket sync, inspector panels & native IPC
+└── examples/                       # Ready-to-test 6-DOF Xacro arm + STL mesh demo package
+```
+
+---
+
+## Acknowledgements
+
+This project builds on and draws inspiration from:
+
+- [`MorningFrog/urdf-visualizer`](https://github.com/MorningFrog/urdf-visualizer) & [`MorningFrog/zed-urdf`](https://github.com/MorningFrog/zed-urdf)
+- [`gkjohnson/urdf-loaders`](https://github.com/gkjohnson/urdf-loaders) & [Three.js](https://threejs.org/)
+- [`tree-sitter-xml`](https://github.com/tree-sitter-grammars/tree-sitter-xml) & [`sweetppro/zed-xml`](https://github.com/sweetppro/zed-xml)
+- [`tauri-apps/wry`](https://github.com/tauri-apps/wry) & [`tauri-apps/tao`](https://github.com/tauri-apps/tao)
+
+---
+
 ## License
 
-[MIT](./LICENSE)
+This project is licensed under the [MIT License](./LICENSE).
