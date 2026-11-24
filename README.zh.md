@@ -2,7 +2,7 @@
 
 [English](./README.md) | **简体中文**
 
-在 **Zed** 编辑器中实现与 VS Code [`morningfrog.urdf-visualizer`](https://marketplace.visualstudio.com/items?itemName=morningfrog.urdf-visualizer) 对齐的交互式 3D URDF / Xacro 机器人可视化插件，原生支持 **零环境依赖自动下载** 与 **Zed Remote SSH 远端机器人工程实时转发预览**。
+在 **Zed** 编辑器中实现与 [`MorningFrog/urdf-visualizer`](https://github.com/MorningFrog/urdf-visualizer) 对齐的交互式 3D URDF / Xacro 机器人可视化插件，原生支持 **零环境依赖自动下载** 与 **Zed Remote SSH 远端机器人工程实时转发预览**。
 
 ---
 

@@ -2,7 +2,7 @@
 
 **English** | [简体中文](./README.zh.md)
 
-An interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver, Remote SSH preview forwarder, and URDF Language Server for the [Zed](https://zed.dev) editor — bringing the [`morningfrog.urdf-visualizer`](https://marketplace.visualstudio.com/items?itemName=morningfrog.urdf-visualizer) workflow to Zed.
+An interactive 3D URDF & Xacro robot visualizer, ROS `package://` asset resolver, Remote SSH preview forwarder, and URDF Language Server for the [Zed](https://zed.dev) editor — inspired by [`MorningFrog/urdf-visualizer`](https://github.com/MorningFrog/urdf-visualizer).
 
 ---
 
