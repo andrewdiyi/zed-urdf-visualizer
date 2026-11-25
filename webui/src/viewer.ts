@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
@@ -90,6 +91,8 @@ export class UrdfViewport {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mountEl.appendChild(this.renderer.domElement);
@@ -112,16 +115,25 @@ export class UrdfViewport {
   }
 
   private setupLightsAndGrid() {
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444c5e, 1.15);
+    // Studio IBL environment map for realistic PBR reflections (GLB metallic / clearcoat / glossy plastic)
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const roomEnv = new RoomEnvironment();
+    const envTarget = pmrem.fromScene(roomEnv, 0.04);
+    this.scene.environment = envTarget.texture;
+    this.scene.environmentIntensity = 0.7;
+    roomEnv.dispose();
+    pmrem.dispose();
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444c5e, 0.85);
     hemi.position.set(0, 0, 5);
     this.scene.add(hemi);
 
-    const dir1 = new THREE.DirectionalLight(0xffffff, 1.35);
+    const dir1 = new THREE.DirectionalLight(0xffffff, 1.2);
     dir1.position.set(3, -4, 5);
     dir1.castShadow = true;
     this.scene.add(dir1);
 
-    const dir2 = new THREE.DirectionalLight(0xdbeafe, 0.65);
+    const dir2 = new THREE.DirectionalLight(0xdbeafe, 0.55);
     dir2.position.set(-4, 3, 2.5);
     this.scene.add(dir2);
 
