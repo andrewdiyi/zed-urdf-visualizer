@@ -29,13 +29,84 @@
 
 ---
 
-## 安装方式
+## 安装与使用（拉取源码自编译）
 
-普通用户**无需安装 Rust、Node.js、Python 或 ROS**：
+本插件不提交至 Zed 官方扩展市场，直接拉取仓库后以 Zed **Dev Extension** 方式本地安装使用。
 
-1. 在 Zed 扩展市场安装 **URDF Visualizer**
-2. 打开任意 `.urdf` 或 `.xacro` 文件
-3. 首次启动时，插件会检查 Zed 私有工作目录中是否已有缓存的 `zed-urdf-server`；若不存在，则自动从 GitHub Releases 下载对应平台的单文件压缩包并解压启动
+### 环境要求
+
+- 通过 [`rustup`](https://rustup.rs/) 安装 Rust 并添加 `wasm32-wasip2` 目标（Zed 编译 Dev Extension 必需）：
+  ```sh
+  rustup target add wasm32-wasip2
+  ```
+- **Node.js 20+** *（仅当需要从源码自编译 `zed-urdf-server` 及其内嵌的 Three.js 前端时需要）*
+
+### 1. 拉取仓库
+
+```sh
+git clone https://github.com/andrewdiyi/zed-urdf-visualizer.git
+cd zed-urdf-visualizer
+```
+
+### 2. 在 Zed 中安装为开发扩展
+
+1. 打开 Zed，按 `Cmd+Shift+P` / `Ctrl+Shift+P` 打开命令面板
+2. 运行 **`zed: install dev extension`**
+3. 选择刚刚克隆的 `zed-urdf-visualizer` 根目录
+
+> 后续拉取更新或修改 WASM 扩展 / 语法高亮后，在 `zed: extensions` 页面点击 **`Rebuild`** 即可重新编译生效。
+
+### 3. 配置伴生服务（`zed-urdf-server`）
+
+#### 方式 A：从源码自编译（完全本地 / 离线可用）
+
+1. 编译 Three.js 前端与 Rust 伴生服务：
+   ```sh
+   npm --prefix webui install
+   npm --prefix webui run build
+   cargo build --release --manifest-path server/Cargo.toml
+   ```
+2. 通过以下**任一方式**让 Zed 使用自编译的二进制：
+   - **在 Zed `settings.json` 中直接指定路径** *（最简单）*：
+     ```json
+     {
+       "lsp": {
+         "urdf-lsp": {
+           "binary": {
+             "path": "/你的路径/zed-urdf-visualizer/server/target/release/zed-urdf-server",
+             "arguments": ["lsp"]
+           }
+         }
+       }
+     }
+     ```
+   - **或者复制到 Zed 扩展沙盒工作目录**：
+     - **macOS** *（Apple Silicon 需先 `rm -f` 再 `cp`，避免内核旧签名缓存拦截）*：
+       ```sh
+       ZED_WORK="$HOME/Library/Application Support/Zed/extensions/work/urdf-visualizer/zed-urdf-server-local"
+       mkdir -p "$ZED_WORK"
+       rm -f "$ZED_WORK/zed-urdf-server"
+       cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
+       chmod +x "$ZED_WORK/zed-urdf-server"
+       ```
+     - **Linux**：
+       ```sh
+       ZED_WORK="$HOME/.local/share/zed/extensions/work/urdf-visualizer/zed-urdf-server-local"
+       mkdir -p "$ZED_WORK"
+       cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
+       chmod +x "$ZED_WORK/zed-urdf-server"
+       ```
+     - **Windows (PowerShell)**：
+       ```powershell
+       $ZedWork = "$env:LOCALAPPDATA\Zed\extensions\work\urdf-visualizer\zed-urdf-server-local"
+       New-Item -ItemType Directory -Force -Path $ZedWork | Out-Null
+       Copy-Item "server\target\release\zed-urdf-server.exe" "$ZedWork\zed-urdf-server.exe"
+       ```
+3. 打开任意 `.urdf` / `.xacro` 文件（或运行 **`editor: restart language server`**）即可生效。
+
+#### 方式 B：直接自动下载预编译二进制
+
+若跳过方式 A，完成第 2 步后直接打开 `.urdf` / `.xacro` 文件，插件会自动从 [GitHub Releases](https://github.com/andrewdiyi/zed-urdf-visualizer/releases) 下载对应平台的预编译 `zed-urdf-server` 到 Zed 扩展工作目录并启动。
 
 ---
 
@@ -128,55 +199,6 @@ zed-urdf-server ssh user@your-server.example.com
 - `zed-urdf-server-x86_64-pc-windows-msvc.zip`（Windows x64，系统原生 `WebView2` 悬浮窗）
 
 每个压缩包根目录直接包含可执行文件（`zed-urdf-server` 或 Windows 下的 `zed-urdf-server.exe`）。
-
----
-
-## 本地开发与调试
-
-### 环境要求
-
-- 通过 [`rustup`](https://rustup.rs/) 安装 Rust 并添加 `wasm32-wasip2` 目标（`rustup target add wasm32-wasip2`）
-- Node.js 20+（用于构建 Three.js 前端至 `server/dist/`）
-
-### 作为开发扩展安装到 Zed
-
-1. 打开 Zed，按 `Cmd+Shift+P` / `Ctrl+Shift+P` 打开命令面板
-2. 运行 `zed: install dev extension`
-3. 选择本仓库根目录
-
-修改 WASM 扩展或语法查询后，在 `zed: extensions` 页面点击 **`Rebuild`** 即可。
-
-### 无需发布 GitHub Release 的本地调试流程
-
-1. 本地构建前端与伴生服务：
-   ```sh
-   npm --prefix webui install
-   npm --prefix webui run build
-   cargo build --release --manifest-path server/Cargo.toml
-   ```
-2. 将二进制复制到 Zed 扩展沙盒工作目录：
-   - **macOS** *（Apple Silicon 需先 `rm -f` 再 `cp`，避免内核旧签名缓存拦截）*：
-     ```sh
-     ZED_WORK="$HOME/Library/Application Support/Zed/extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2"
-     mkdir -p "$ZED_WORK"
-     rm -f "$ZED_WORK/zed-urdf-server"
-     cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
-     chmod +x "$ZED_WORK/zed-urdf-server"
-     ```
-   - **Linux**：
-     ```sh
-     ZED_WORK="$HOME/.local/share/zed/extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2"
-     mkdir -p "$ZED_WORK"
-     cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
-     chmod +x "$ZED_WORK/zed-urdf-server"
-     ```
-   - **Windows (PowerShell)**：
-     ```powershell
-     $ZedWork = "$env:LOCALAPPDATA\Zed\extensions\work\urdf-visualizer\zed-urdf-server-v0.1.2"
-     New-Item -ItemType Directory -Force -Path $ZedWork | Out-Null
-     Copy-Item "server\target\release\zed-urdf-server.exe" "$ZedWork\zed-urdf-server.exe"
-     ```
-3. 在 Zed 中运行 **`editor: restart language server`** 即可加载新版服务。
 
 ---
 

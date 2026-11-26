@@ -29,13 +29,84 @@ Because Zed extensions run in a headless WASI sandbox without custom WebView/GUI
 
 ---
 
-## Installation
+## Installation (Build & Install from Source)
 
-For normal users (no Rust, Node.js, Python, or ROS installation required):
+This extension is installed locally as a Zed **Dev Extension** rather than from the official Zed Extensions registry.
 
-1. Install **URDF Visualizer** in Zed
-2. Open any `.urdf` or `.xacro` file
-3. On first launch, the extension checks its private Zed work directory for a cached `zed-urdf-server` binary; if not found, it automatically downloads the matching platform archive from GitHub Releases, extracts it, and starts `urdf-lsp`
+### Prerequisites
+
+- **Rust via [`rustup`](https://rustup.rs/)** with the WASI target installed (required by Zed to compile the Dev Extension):
+  ```sh
+  rustup target add wasm32-wasip2
+  ```
+- **Node.js 20+** *(only required if you want to build `zed-urdf-server` and its embedded Three.js WebUI from source)*
+
+### 1. Clone the Repository
+
+```sh
+git clone https://github.com/andrewdiyi/zed-urdf-visualizer.git
+cd zed-urdf-visualizer
+```
+
+### 2. Install as a Dev Extension in Zed
+
+1. Open Zed and open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Run **`zed: install dev extension`**
+3. Select the cloned `zed-urdf-visualizer` directory
+
+> After pulling updates or editing the WASM extension / language queries, open `zed: extensions` and click **`Rebuild`**.
+
+### 3. Companion Server (`zed-urdf-server`)
+
+#### Option A: Compile from Source (Fully Local / Offline)
+
+1. Build the Three.js WebUI and companion Rust server:
+   ```sh
+   npm --prefix webui install
+   npm --prefix webui run build
+   cargo build --release --manifest-path server/Cargo.toml
+   ```
+2. Tell Zed to use your compiled binary via **either** method:
+   - **Point directly in Zed `settings.json`** *(easiest)*:
+     ```json
+     {
+       "lsp": {
+         "urdf-lsp": {
+           "binary": {
+             "path": "/absolute/path/to/zed-urdf-visualizer/server/target/release/zed-urdf-server",
+             "arguments": ["lsp"]
+           }
+         }
+       }
+     }
+     ```
+   - **Or copy into Zed's extension work directory**:
+     - **macOS** *(remove any existing file first on Apple Silicon to keep ad-hoc code signing valid)*:
+       ```sh
+       ZED_WORK="$HOME/Library/Application Support/Zed/extensions/work/urdf-visualizer/zed-urdf-server-local"
+       mkdir -p "$ZED_WORK"
+       rm -f "$ZED_WORK/zed-urdf-server"
+       cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
+       chmod +x "$ZED_WORK/zed-urdf-server"
+       ```
+     - **Linux**:
+       ```sh
+       ZED_WORK="$HOME/.local/share/zed/extensions/work/urdf-visualizer/zed-urdf-server-local"
+       mkdir -p "$ZED_WORK"
+       cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
+       chmod +x "$ZED_WORK/zed-urdf-server"
+       ```
+     - **Windows (PowerShell)**:
+       ```powershell
+       $ZedWork = "$env:LOCALAPPDATA\Zed\extensions\work\urdf-visualizer\zed-urdf-server-local"
+       New-Item -ItemType Directory -Force -Path $ZedWork | Out-Null
+       Copy-Item "server\target\release\zed-urdf-server.exe" "$ZedWork\zed-urdf-server.exe"
+       ```
+3. Open any `.urdf` / `.xacro` file (or run **`editor: restart language server`** in Zed).
+
+#### Option B: Use Prebuilt Binary from GitHub Releases
+
+If you skip Option A and directly open a `.urdf` or `.xacro` file after Step 2, the extension will automatically download the matching prebuilt `zed-urdf-server` binary from [GitHub Releases](https://github.com/andrewdiyi/zed-urdf-visualizer/releases) into Zed's extension work directory.
 
 ---
 
@@ -128,55 +199,6 @@ GitHub Actions (`.github/workflows/release.yml`) builds and publishes five self-
 - `zed-urdf-server-x86_64-pc-windows-msvc.zip` (Windows x64, native `WebView2` window)
 
 Each archive places the executable (`zed-urdf-server` or `zed-urdf-server.exe`) at the archive root.
-
----
-
-## Development
-
-### Prerequisites
-
-- Rust installed via [`rustup`](https://rustup.rs/) with the `wasm32-wasip2` target (`rustup target add wasm32-wasip2`)
-- Node.js 20+ (to bundle the Three.js WebUI into `server/dist/`)
-
-### Install as a Dev Extension in Zed
-
-1. Open Zed and open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
-2. Run `zed: install dev extension`
-3. Select this repository folder
-
-After modifying the WASM extension or language queries, open `zed: extensions` and click **`Rebuild`**.
-
-### Local Testing Without Publishing a GitHub Release
-
-1. Build the WebUI and companion server:
-   ```sh
-   npm --prefix webui install
-   npm --prefix webui run build
-   cargo build --release --manifest-path server/Cargo.toml
-   ```
-2. Copy the binary into Zed's extension work directory:
-   - **macOS** *(remove any existing file first on Apple Silicon to keep ad-hoc code signing valid)*:
-     ```sh
-     ZED_WORK="$HOME/Library/Application Support/Zed/extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2"
-     mkdir -p "$ZED_WORK"
-     rm -f "$ZED_WORK/zed-urdf-server"
-     cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
-     chmod +x "$ZED_WORK/zed-urdf-server"
-     ```
-   - **Linux**:
-     ```sh
-     ZED_WORK="$HOME/.local/share/zed/extensions/work/urdf-visualizer/zed-urdf-server-v0.1.2"
-     mkdir -p "$ZED_WORK"
-     cp server/target/release/zed-urdf-server "$ZED_WORK/zed-urdf-server"
-     chmod +x "$ZED_WORK/zed-urdf-server"
-     ```
-   - **Windows (PowerShell)**:
-     ```powershell
-     $ZedWork = "$env:LOCALAPPDATA\Zed\extensions\work\urdf-visualizer\zed-urdf-server-v0.1.2"
-     New-Item -ItemType Directory -Force -Path $ZedWork | Out-Null
-     Copy-Item "server\target\release\zed-urdf-server.exe" "$ZedWork\zed-urdf-server.exe"
-     ```
-3. Run **`editor: restart language server`** in Zed to pick up the newly built server.
 
 ---
 
